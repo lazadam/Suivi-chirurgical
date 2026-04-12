@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Suivi chirurgical</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark">◉</span>
+      <h1>Suivi chirurgical</h1>
+    </div>
+    <div class="actions">
+      <button id="btn-new-patient" class="btn btn-primary">+ Nouveau patient</button>
+      <button id="btn-export" class="btn" title="Exporter toutes les données (JSON)">Exporter</button>
+      <button id="btn-import" class="btn" title="Importer une sauvegarde">Importer</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden />
+    </div>
+  </header>
+
+  <main class="app-main">
+    <aside class="sidebar">
+      <div class="search-box">
+        <input type="search" id="search" placeholder="Rechercher (nom, indication...)" />
+      </div>
+      <div class="filters">
+        <select id="filter-type">
+          <option value="">Toutes les chirurgies</option>
+          <option value="cataracte">Cataracte</option>
+          <option value="vr">Vitréo-rétinien</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+      <ul id="patient-list" class="patient-list" aria-label="Liste des patients"></ul>
+      <div class="sidebar-footer">
+        <span id="patient-count">0 patient</span>
+      </div>
+    </aside>
+
+    <section id="patient-detail" class="patient-detail">
+      <div class="empty-state">
+        <div class="empty-icon">◉</div>
+        <h2>Aucun patient sélectionné</h2>
+        <p>Sélectionnez un patient dans la liste ou créez-en un nouveau pour commencer le suivi.</p>
+        <button class="btn btn-primary" onclick="document.getElementById('btn-new-patient').click()">
+          + Créer un patient
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <div id="modal-container" class="modal-container hidden" aria-hidden="true"></div>
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
