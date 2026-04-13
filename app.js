@@ -346,6 +346,8 @@
     const items = [];
     if (f.avOD) items.push(`AV OD: ${esc(f.avOD)}`);
     if (f.avOS) items.push(`AV OS: ${esc(f.avOS)}`);
+    if (f.refOD) items.push(`Réf OD: ${esc(f.refOD)}`);
+    if (f.refOS) items.push(`Réf OS: ${esc(f.refOS)}`);
     if (f.tonusOD) items.push(`TO OD: ${esc(f.tonusOD)}`);
     if (f.tonusOS) items.push(`TO OS: ${esc(f.tonusOS)}`);
     if (f.oct) items.push(`OCT: ${esc(f.oct)}`);
@@ -524,6 +526,14 @@
               <input type="text" id="fu-av-os" value="${esc(f.avOS || '')}" placeholder="Ex: 8/10" />
             </div>
             <div class="form-field">
+              <label for="fu-ref-od">Réfraction OD</label>
+              <input type="text" id="fu-ref-od" value="${esc(f.refOD || '')}" placeholder="Ex: -0.50 (+0.25) 90°" />
+            </div>
+            <div class="form-field">
+              <label for="fu-ref-os">Réfraction OS</label>
+              <input type="text" id="fu-ref-os" value="${esc(f.refOS || '')}" placeholder="Ex: +0.75 (-0.50) 180°" />
+            </div>
+            <div class="form-field">
               <label for="fu-to-od">Tonus OD (mmHg)</label>
               <input type="text" id="fu-to-od" value="${esc(f.tonusOD || '')}" />
             </div>
@@ -560,6 +570,8 @@
         date: $modal.querySelector('#fu-date').value || null,
         avOD: $modal.querySelector('#fu-av-od').value.trim() || null,
         avOS: $modal.querySelector('#fu-av-os').value.trim() || null,
+        refOD: $modal.querySelector('#fu-ref-od').value.trim() || null,
+        refOS: $modal.querySelector('#fu-ref-os').value.trim() || null,
         tonusOD: $modal.querySelector('#fu-to-od').value.trim() || null,
         tonusOS: $modal.querySelector('#fu-to-os').value.trim() || null,
         oct: $modal.querySelector('#fu-oct').value.trim() || null,
@@ -757,6 +769,8 @@
             <Cell><Data ss:Type="String">${e(delay)}</Data></Cell>
             <Cell><Data ss:Type="String">${e(f.avOD)}</Data></Cell>
             <Cell><Data ss:Type="String">${e(f.avOS)}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(f.refOD)}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(f.refOS)}</Data></Cell>
             <Cell><Data ss:Type="String">${e(f.tonusOD)}</Data></Cell>
             <Cell><Data ss:Type="String">${e(f.tonusOS)}</Data></Cell>
             <Cell><Data ss:Type="String">${e(f.oct)}</Data></Cell>
@@ -815,6 +829,8 @@
         <Cell><Data ss:Type="String">Délai</Data></Cell>
         <Cell><Data ss:Type="String">AV OD</Data></Cell>
         <Cell><Data ss:Type="String">AV OS</Data></Cell>
+        <Cell><Data ss:Type="String">Réfraction OD</Data></Cell>
+        <Cell><Data ss:Type="String">Réfraction OS</Data></Cell>
         <Cell><Data ss:Type="String">TO OD</Data></Cell>
         <Cell><Data ss:Type="String">TO OS</Data></Cell>
         <Cell><Data ss:Type="String">OCT</Data></Cell>
