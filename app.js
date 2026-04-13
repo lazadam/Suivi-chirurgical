@@ -27,6 +27,8 @@
     'ECCE',
     'MSICS',
     'Implantation secondaire',
+    'Implantation Carlevale',
+    'Implantation Artisan',
     'Iridectomie',
     'Synéchiolyse',
     'Capsulotomie au vitréotome',
@@ -73,6 +75,7 @@
   // ── Global listeners ────────────────────────────────────────────────────
   document.getElementById('btn-new-patient').addEventListener('click', () => openPatientForm());
   document.getElementById('btn-export').addEventListener('click', exportData);
+  document.getElementById('btn-export-excel').addEventListener('click', exportExcel);
   document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
   document.getElementById('import-file').addEventListener('change', importData);
   $search.addEventListener('input', refreshList);
@@ -694,6 +697,145 @@
       toast(`Import réussi (${(payload.patients || []).length} patients)`, 'success');
     } catch (err) {
       toast('Erreur lors de l\'import : ' + err.message, 'error');
+    }
+  }
+
+  // ── Excel export ────────────────────────────────────────────────────────
+  async function exportExcel() {
+    try {
+      const patients = await db.getAll(DB_STORES.patients);
+      const followups = await db.getAll(DB_STORES.followups);
+
+      patients.sort((a, b) => (b.surgeryDate || '').localeCompare(a.surgeryDate || ''));
+
+      // Build followup map: patientId -> sorted followups
+      const fuMap = new Map();
+      for (const f of followups) {
+        if (!fuMap.has(f.patientId)) fuMap.set(f.patientId, []);
+        fuMap.get(f.patientId).push(f);
+      }
+      for (const [, arr] of fuMap) arr.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+      const e = (s) => esc(s || '');
+
+      // --- Sheet 1: Patients ---
+      let patientsRows = '';
+      for (const p of patients) {
+        const surgeryMs = p.surgeryDate ? new Date(p.surgeryDate).getTime() : null;
+        const fus = fuMap.get(p.id) || [];
+        const lastFu = fus.length ? fus[fus.length - 1] : null;
+
+        patientsRows += `<Row>
+          <Cell><Data ss:Type="String">${e(p.lastName)}</Data></Cell>
+          <Cell><Data ss:Type="String">${e(p.firstName)}</Data></Cell>
+          <Cell><Data ss:Type="String">${p.dob ? formatDate(p.dob) : ''}</Data></Cell>
+          <Cell><Data ss:Type="String">${e(p.eye)}</Data></Cell>
+          <Cell><Data ss:Type="String">${p.surgeryDate ? formatDate(p.surgeryDate) : ''}</Data></Cell>
+          <Cell><Data ss:Type="String">${e(p.indication)}</Data></Cell>
+          <Cell><Data ss:Type="String">${e((p.gestures || []).join(', '))}</Data></Cell>
+          <Cell><Data ss:Type="String">${e(p.aide)}</Data></Cell>
+          <Cell><Data ss:Type="String">${e(p.comments)}</Data></Cell>
+          <Cell><Data ss:Type="String">${lastFu && lastFu.avOD ? e(lastFu.avOD) : ''}</Data></Cell>
+          <Cell><Data ss:Type="String">${lastFu && lastFu.avOS ? e(lastFu.avOS) : ''}</Data></Cell>
+          <Cell><Data ss:Type="Number">${fus.length}</Data></Cell>
+        </Row>`;
+      }
+
+      // --- Sheet 2: Consultations ---
+      let followupsRows = '';
+      for (const p of patients) {
+        const fus = fuMap.get(p.id) || [];
+        const surgeryMs = p.surgeryDate ? new Date(p.surgeryDate).getTime() : null;
+        for (const f of fus) {
+          const delay = surgeryMs && f.date ? formatDelay(surgeryMs, new Date(f.date).getTime()) : '';
+          followupsRows += `<Row>
+            <Cell><Data ss:Type="String">${e(p.lastName)}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(p.firstName)}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(p.eye)}</Data></Cell>
+            <Cell><Data ss:Type="String">${p.surgeryDate ? formatDate(p.surgeryDate) : ''}</Data></Cell>
+            <Cell><Data ss:Type="String">${f.date ? formatDate(f.date) : ''}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(delay)}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(f.avOD)}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(f.avOS)}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(f.tonusOD)}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(f.tonusOS)}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(f.oct)}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(f.examFindings)}</Data></Cell>
+            <Cell><Data ss:Type="String">${e(f.notes)}</Data></Cell>
+          </Row>`;
+        }
+      }
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Styles>
+    <Style ss:ID="Header">
+      <Font ss:Bold="1" ss:Size="11"/>
+      <Interior ss:Color="#E0F2F0" ss:Pattern="Solid"/>
+    </Style>
+  </Styles>
+  <Worksheet ss:Name="Patients">
+    <Table>
+      <Column ss:Width="120"/><Column ss:Width="100"/><Column ss:Width="90"/>
+      <Column ss:Width="50"/><Column ss:Width="90"/><Column ss:Width="160"/>
+      <Column ss:Width="280"/><Column ss:Width="120"/><Column ss:Width="200"/>
+      <Column ss:Width="70"/><Column ss:Width="70"/><Column ss:Width="50"/>
+      <Row ss:StyleID="Header">
+        <Cell><Data ss:Type="String">Nom</Data></Cell>
+        <Cell><Data ss:Type="String">Prénom</Data></Cell>
+        <Cell><Data ss:Type="String">Date naissance</Data></Cell>
+        <Cell><Data ss:Type="String">Œil</Data></Cell>
+        <Cell><Data ss:Type="String">Date chirurgie</Data></Cell>
+        <Cell><Data ss:Type="String">Indication</Data></Cell>
+        <Cell><Data ss:Type="String">Gestes</Data></Cell>
+        <Cell><Data ss:Type="String">Aide opératoire</Data></Cell>
+        <Cell><Data ss:Type="String">Commentaires</Data></Cell>
+        <Cell><Data ss:Type="String">Dern. AV OD</Data></Cell>
+        <Cell><Data ss:Type="String">Dern. AV OS</Data></Cell>
+        <Cell><Data ss:Type="String">Nb consult.</Data></Cell>
+      </Row>
+      ${patientsRows}
+    </Table>
+  </Worksheet>
+  <Worksheet ss:Name="Consultations">
+    <Table>
+      <Column ss:Width="120"/><Column ss:Width="100"/><Column ss:Width="50"/>
+      <Column ss:Width="90"/><Column ss:Width="90"/><Column ss:Width="70"/>
+      <Column ss:Width="70"/><Column ss:Width="70"/><Column ss:Width="70"/>
+      <Column ss:Width="70"/><Column ss:Width="120"/><Column ss:Width="200"/>
+      <Column ss:Width="200"/>
+      <Row ss:StyleID="Header">
+        <Cell><Data ss:Type="String">Nom</Data></Cell>
+        <Cell><Data ss:Type="String">Prénom</Data></Cell>
+        <Cell><Data ss:Type="String">Œil</Data></Cell>
+        <Cell><Data ss:Type="String">Date chirurgie</Data></Cell>
+        <Cell><Data ss:Type="String">Date consultation</Data></Cell>
+        <Cell><Data ss:Type="String">Délai</Data></Cell>
+        <Cell><Data ss:Type="String">AV OD</Data></Cell>
+        <Cell><Data ss:Type="String">AV OS</Data></Cell>
+        <Cell><Data ss:Type="String">TO OD</Data></Cell>
+        <Cell><Data ss:Type="String">TO OS</Data></Cell>
+        <Cell><Data ss:Type="String">OCT</Data></Cell>
+        <Cell><Data ss:Type="String">Examen</Data></Cell>
+        <Cell><Data ss:Type="String">Notes</Data></Cell>
+      </Row>
+      ${followupsRows}
+    </Table>
+  </Worksheet>
+</Workbook>`;
+
+      const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `suivi-chirurgical-${new Date().toISOString().slice(0, 10)}.xls`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Export Excel terminé', 'success');
+    } catch (err) {
+      toast('Erreur export Excel : ' + err.message, 'error');
     }
   }
 
